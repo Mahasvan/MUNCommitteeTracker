@@ -75,11 +75,14 @@ export default function PortfolioUpload({ committeeId, onPortfoliosUploaded, isU
       // Validate structure
       const portfolios = validatePortfolioData(data)
 
+      // Sort portfolios alphabetically, case-insensitive
+      const sortedPortfolios = portfolios.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+
       // Upload to server
       const response = await fetch(`/api/committees/${committeeId}/portfolios`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ portfolios }),
+        body: JSON.stringify({ portfolios: sortedPortfolios }),
       })
 
       if (!response.ok) {
@@ -88,7 +91,7 @@ export default function PortfolioUpload({ committeeId, onPortfoliosUploaded, isU
       }
 
       setSuccess(true)
-      onPortfoliosUploaded(portfolios)
+      onPortfoliosUploaded(sortedPortfolios)
 
       // Reset file input
       if (fileInputRef.current) {

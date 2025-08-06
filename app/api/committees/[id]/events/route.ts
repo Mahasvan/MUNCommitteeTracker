@@ -1,9 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { initDatabase, getCommitteeEvents, addCommitteeEvent } from "@/lib/database"
+import { getCommitteeEvents, addCommitteeEvent } from "@/lib/database"
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    await initDatabase()
     const events = await getCommitteeEvents(params.id)
     return NextResponse.json(events)
   } catch (error) {
@@ -14,7 +13,6 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    await initDatabase()
     const { type, details } = await request.json()
 
     if (!type || !details) {

@@ -1,110 +1,23 @@
-import Database from "better-sqlite3"
+import { supabase } from './supabase'
 import { randomUUID } from "crypto"
-
-let db: Database.Database | null = null
-
-export function getDatabase() {
-  if (!db) {
-    db = new Database("./data/mun-tracker.db")
-    db.pragma("journal_mode = WAL")
-    db.pragma("foreign_keys = ON")
-  }
-  return db
-}
 
 export function verifyPassword(password: string, storedPassword: string): boolean {
   return password === storedPassword
 }
 
-export function getCommitteePortfolios(committeeId: string): string[] {
-  const database = getDatabase()
-  const stmt = database.prepare(`
-    SELECT name FROM portfolios 
-    WHERE committee_id = ? 
-    ORDER BY created_at ASC
-  `)
-  
-  const rows = stmt.all(committeeId) as any[]
-  return rows.map(row => row.name)
-}
+export async function getCommitteePortfolios(committeeId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('portfolios')
+    .select('name')
+    .eq('committee_id', committeeId)
+    .order('created_at', { ascending: true })
 
-export async function initDatabase() {
-  const database = getDatabase()
-
-  // Check if tables already exist
-  const tableCheck = database.prepare(`
-    SELECT name FROM sqlite_master 
-    WHERE type='table' AND name IN ('committees', 'portfolios', 'events')
-  `)
-  const existingTables = tableCheck.all() as any[]
-  
-  if (existingTables.length === 3) {
-    // All tables exist, no need to recreate
-    return
+  if (error) {
+    console.error('Error fetching portfolios:', error)
+    return []
   }
 
-  // Disable foreign key constraints temporarily
-  database.exec(`PRAGMA foreign_keys = OFF`)
-
-  // Force drop all tables to ensure clean slate
-  try {
-    database.exec(`DROP TABLE IF EXISTS events`)
-    database.exec(`DROP TABLE IF EXISTS portfolios`) 
-    database.exec(`DROP TABLE IF EXISTS committees`)
-  } catch (error) {
-    // Ignore errors if tables don't exist
-  }
-
-  // Create committees table with clean structure
-  database.exec(`
-    CREATE TABLE committees (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      password TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `)
-
-  // Create portfolios table for better normalization
-  database.exec(`
-    CREATE TABLE portfolios (
-      id TEXT PRIMARY KEY,
-      committee_id TEXT NOT NULL,
-      name TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (committee_id) REFERENCES committees (id) ON DELETE CASCADE
-    )
-  `)
-
-  // Create events table with clean structure
-  database.exec(`
-    CREATE TABLE events (
-      id TEXT PRIMARY KEY,
-      committee_id TEXT NOT NULL,
-      type TEXT NOT NULL,
-      portfolio TEXT NOT NULL,
-      target_portfolio TEXT,
-      duration TEXT,
-      description TEXT,
-      motion_type TEXT,
-      motion_status TEXT,
-      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (committee_id) REFERENCES committees (id) ON DELETE CASCADE
-    )
-  `)
-
-  // Create indexes for better performance
-  database.exec(`
-    CREATE INDEX idx_committees_created_at ON committees (created_at);
-    CREATE INDEX idx_portfolios_committee_id ON portfolios (committee_id);
-    CREATE INDEX idx_events_committee_id ON events (committee_id);
-    CREATE INDEX idx_events_timestamp ON events (timestamp);
-    CREATE INDEX idx_events_type ON events (type);
-    CREATE INDEX idx_events_portfolio ON events (portfolio);
-  `)
-
-  // Re-enable foreign key constraints
-  database.exec(`PRAGMA foreign_keys = ON`)
+  return data?.map((row: any) => row.name) || []
 }
 
 export interface Committee {
@@ -129,195 +42,213 @@ export interface Event {
   timestamp: string
 }
 
-export function getCommittees(): Committee[] {
-  const database = getDatabase()
-  const stmt = database.prepare(`
-    SELECT 
-      c.id,
-      c.name,
-      c.created_at as createdAt,
-      c.password,
-      COUNT(p.id) as portfolioCount
-    FROM committees c
-    LEFT JOIN portfolios p ON c.id = p.committee_id
-    GROUP BY c.id
-    ORDER BY c.created_at DESC
-  `)
+export async function getCommittees(): Promise<Committee[]> {
+  const { data, error } = await supabase
+    .from('committees')
+    .select(`
+      id,
+      name,
+      created_at,
+      password,
+      portfolios!inner(count)
+    `)
+    .order('created_at', { ascending: false })
 
-  const rows = stmt.all() as any[]
-  return rows.map((row) => ({
-    ...row,
-    portfolios: getCommitteePortfolios(row.id),
-    portfolioCount: row.portfolioCount,
-    hasPassword: !!row.password,
-  }))
+  if (error) {
+    console.error('Error fetching committees:', error)
+    return []
+  }
+
+  const committees = await Promise.all(
+    data?.map(async (row: any) => {
+      const portfolios = await getCommitteePortfolios(row.id)
+      return {
+        id: row.id,
+        name: row.name,
+        portfolios,
+        createdAt: row.created_at,
+        portfolioCount: portfolios.length,
+        hasPassword: !!row.password,
+      }
+    }) || []
+  )
+
+  return committees
 }
 
-export function createCommittee(name: string, password: string): Committee {
-  const database = getDatabase()
-  const id = randomUUID()
-  const createdAt = new Date().toISOString()
+export async function createCommittee(name: string, password: string): Promise<Committee> {
+  const { data, error } = await supabase
+    .from('committees')
+    .insert({
+      name,
+      password,
+    })
+    .select()
+    .single()
 
-  const stmt = database.prepare(`
-    INSERT INTO committees (id, name, password, created_at)
-    VALUES (?, ?, ?, ?)
-  `)
-
-  stmt.run(id, name, password, createdAt)
+  if (error) {
+    console.error('Error creating committee:', error)
+    throw new Error('Failed to create committee')
+  }
 
   return {
-    id,
-    name,
+    id: data.id,
+    name: data.name,
     portfolios: [],
-    createdAt,
+    createdAt: data.created_at,
     portfolioCount: 0,
     hasPassword: true,
   }
 }
 
-export function getCommitteeById(id: string): Committee | null {
-  const database = getDatabase()
-  const stmt = database.prepare(`
-    SELECT 
-      id,
-      name,
-      created_at as createdAt,
-      password
-    FROM committees 
-    WHERE id = ?
-  `)
+export async function getCommitteeById(id: string): Promise<Committee | null> {
+  const { data, error } = await supabase
+    .from('committees')
+    .select('*')
+    .eq('id', id)
+    .single()
 
-  const row = stmt.get(id) as any
-  if (!row) return null
+  if (error || !data) {
+    return null
+  }
 
-  const portfolios = getCommitteePortfolios(id)
+  const portfolios = await getCommitteePortfolios(id)
   
   return {
-    ...row,
+    id: data.id,
+    name: data.name,
     portfolios,
+    createdAt: data.created_at,
     portfolioCount: portfolios.length,
-    hasPassword: !!row.password,
+    hasPassword: !!data.password,
   }
 }
 
-export function verifyCommitteeAccess(id: string, password: string): boolean {
-  const database = getDatabase()
-  const stmt = database.prepare(`
-    SELECT password
-    FROM committees 
-    WHERE id = ?
-  `)
+export async function verifyCommitteeAccess(id: string, password: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('committees')
+    .select('password')
+    .eq('id', id)
+    .single()
 
-  const row = stmt.get(id) as any
-  if (!row) return false
+  if (error || !data) {
+    return false
+  }
 
   // If no password exists, allow access
-  if (!row.password) return true
+  if (!data.password) return true
 
-  return verifyPassword(password, row.password)
+  return verifyPassword(password, data.password)
 }
 
-export function updateCommitteePortfolios(id: string, portfolios: string[]): void {
-  const database = getDatabase()
-  
+export async function updateCommitteePortfolios(id: string, portfolios: string[]): Promise<void> {
+  // Sort portfolios alphabetically, case-insensitive
+  const sortedPortfolios = [...portfolios].sort((a, b) => 
+    a.localeCompare(b, undefined, { sensitivity: 'base' })
+  )
+
   // Delete existing portfolios for this committee
-  const deleteStmt = database.prepare(`DELETE FROM portfolios WHERE committee_id = ?`)
-  deleteStmt.run(id)
-  
+  const { error: deleteError } = await supabase
+    .from('portfolios')
+    .delete()
+    .eq('committee_id', id)
+
+  if (deleteError) {
+    console.error('Error deleting portfolios:', deleteError)
+    throw new Error('Failed to update portfolios')
+  }
+
   // Insert new portfolios
-  const insertStmt = database.prepare(`
-    INSERT INTO portfolios (id, committee_id, name, created_at)
-    VALUES (?, ?, ?, ?)
-  `)
-  
-  portfolios.forEach(portfolio => {
-    const portfolioId = randomUUID()
-    const createdAt = new Date().toISOString()
-    insertStmt.run(portfolioId, id, portfolio, createdAt)
-  })
+  const portfolioData = sortedPortfolios.map(name => ({
+    committee_id: id,
+    name,
+  }))
+
+  const { error: insertError } = await supabase
+    .from('portfolios')
+    .insert(portfolioData)
+
+  if (insertError) {
+    console.error('Error inserting portfolios:', insertError)
+    throw new Error('Failed to update portfolios')
+  }
 }
 
-export function getCommitteeEvents(committeeId: string): Event[] {
-  const database = getDatabase()
-  const stmt = database.prepare(`
-    SELECT 
-      id,
-      committee_id as committeeId,
-      type,
-      portfolio,
-      target_portfolio as targetPortfolio,
-      duration,
-      description,
-      motion_type as motionType,
-      motion_status as motionStatus,
-      timestamp
-    FROM events 
-    WHERE committee_id = ?
-    ORDER BY timestamp DESC
-  `)
+export async function getCommitteeEvents(committeeId: string): Promise<Event[]> {
+  const { data, error } = await supabase
+    .from('events')
+    .select('*')
+    .eq('committee_id', committeeId)
+    .order('timestamp', { ascending: false })
 
-  const rows = stmt.all(committeeId) as any[]
-  return rows.map((row) => ({
-    ...row,
-    // Convert empty strings to undefined for optional fields
-    targetPortfolio: row.targetPortfolio || undefined,
+  if (error) {
+    console.error('Error fetching events:', error)
+    return []
+  }
+
+  return data?.map((row: any) => ({
+    id: row.id,
+    committeeId: row.committee_id,
+    type: row.type,
+    portfolio: row.portfolio,
+    targetPortfolio: row.target_portfolio || undefined,
     duration: row.duration || undefined,
     description: row.description || undefined,
-    motionType: row.motionType || undefined,
-    motionStatus: row.motionStatus || undefined,
-  }))
+    motionType: row.motion_type || undefined,
+    motionStatus: row.motion_status || undefined,
+    timestamp: row.timestamp,
+  })) || []
 }
 
-export function addCommitteeEvent(committeeId: string, type: string, details: any): Event {
-  const database = getDatabase()
-  
+export async function addCommitteeEvent(committeeId: string, type: string, details: any): Promise<Event> {
   console.log(`Adding event for committee: ${committeeId}, type: ${type}`)
   
   // First, verify the committee exists
-  const committeeCheck = database.prepare(`SELECT id FROM committees WHERE id = ?`)
-  const committee = committeeCheck.get(committeeId)
+  const { data: committee, error: committeeError } = await supabase
+    .from('committees')
+    .select('id')
+    .eq('id', committeeId)
+    .single()
   
-  if (!committee) {
+  if (committeeError || !committee) {
     console.error(`Committee with ID ${committeeId} not found`)
     throw new Error(`Committee with ID ${committeeId} not found`)
   }
   
   console.log(`Committee found: ${committee.id}`)
   
-  const id = randomUUID()
-  const timestamp = new Date().toISOString()
-
-  const stmt = database.prepare(`
-    INSERT INTO events (
-      id, committee_id, type, portfolio, target_portfolio, 
-      duration, description, motion_type, motion_status, timestamp
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `)
-
-  stmt.run(
-    id, 
-    committeeId, 
-    type, 
-    details.portfolio || details.raiser || '',
-    details.target || details.targetPortfolio || null,
-    details.duration || null,
-    details.description || null,
-    details.type || details.motionType || null,
-    details.status || details.motionStatus || null,
-    timestamp
-  )
-
-  return {
-    id,
-    committeeId,
+  const eventData = {
+    committee_id: committeeId,
     type,
     portfolio: details.portfolio || details.raiser || '',
-    targetPortfolio: details.target || details.targetPortfolio || undefined,
-    duration: details.duration || undefined,
-    description: details.description || undefined,
-    motionType: details.type || details.motionType || undefined,
-    motionStatus: details.status || details.motionStatus || undefined,
-    timestamp,
+    target_portfolio: details.target || details.targetPortfolio || null,
+    duration: details.duration || null,
+    description: details.description || null,
+    motion_type: details.type || details.motionType || null,
+    motion_status: details.status || details.motionStatus || null,
+  }
+
+  const { data, error } = await supabase
+    .from('events')
+    .insert(eventData)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error adding event:', error)
+    throw new Error('Failed to add event')
+  }
+
+  return {
+    id: data.id,
+    committeeId: data.committee_id,
+    type: data.type,
+    portfolio: data.portfolio,
+    targetPortfolio: data.target_portfolio || undefined,
+    duration: data.duration || undefined,
+    description: data.description || undefined,
+    motionType: data.motion_type || undefined,
+    motionStatus: data.motion_status || undefined,
+    timestamp: data.timestamp,
   }
 }

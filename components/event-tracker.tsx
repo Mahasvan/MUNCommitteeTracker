@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MessageSquare, AlertTriangle, HelpCircle, FileText, Clock, CheckCircle, XCircle } from "lucide-react"
+import { Command, CommandInput, CommandList, CommandItem } from "@/components/ui/command"
 
 interface Event {
   id: string
@@ -173,6 +174,69 @@ export default function EventTracker({ committeeId, portfolios }: EventTrackerPr
     return <div className="text-center py-8">Loading events...</div>
   }
 
+  function SearchablePortfolioDropdown({
+    value,
+    onChange,
+    portfolios,
+    placeholder = "Select portfolio",
+    id
+  }: {
+    value: string
+    onChange: (value: string) => void
+    portfolios: string[]
+    placeholder?: string
+    id?: string
+  }) {
+    const [open, setOpen] = useState(false)
+    const [search, setSearch] = useState("")
+    return (
+      <div className="relative">
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full justify-between"
+          onClick={() => setOpen((v) => !v)}
+          aria-haspopup="listbox"
+          id={id}
+        >
+          {value ? value : <span className="text-muted-foreground">{placeholder}</span>}
+        </Button>
+        {open && (
+          <div className="absolute z-50 mt-2 w-full bg-white border rounded-md shadow-lg">
+            <Command shouldFilter={false}>
+              <CommandInput
+                placeholder="Search portfolios..."
+                value={search}
+                onValueChange={setSearch}
+                autoFocus
+              />
+              <CommandList>
+                {portfolios
+                  .filter((p) => p.toLowerCase().includes(search.toLowerCase()))
+                  .map((portfolio) => (
+                    <CommandItem
+                      key={portfolio}
+                      value={portfolio}
+                      onSelect={() => {
+                        onChange(portfolio)
+                        setOpen(false)
+                        setSearch("")
+                      }}
+                    >
+                      {portfolio}
+                    </CommandItem>
+                  ))}
+                {portfolios.filter((p) => p.toLowerCase().includes(search.toLowerCase())).length === 0 && (
+                  <div className="p-2 text-sm text-gray-500">No portfolios found</div>
+                )}
+              </CommandList>
+            </Command>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <Tabs defaultValue="track" className="w-full">
@@ -195,21 +259,7 @@ export default function EventTracker({ committeeId, portfolios }: EventTrackerPr
                 <form onSubmit={handleSpeechSubmit} className="space-y-4">
                   <div>
                     <Label htmlFor="speech-portfolio">Portfolio</Label>
-                    <Select
-                      value={speechForm.portfolio}
-                      onValueChange={(value) => setSpeechForm({ ...speechForm, portfolio: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select portfolio" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {portfolios.map((portfolio) => (
-                          <SelectItem key={portfolio} value={portfolio}>
-                            {portfolio}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SearchablePortfolioDropdown value={speechForm.portfolio} onChange={v => setSpeechForm({ ...speechForm, portfolio: v })} portfolios={portfolios} id="speech-portfolio" />
                   </div>
                   <div>
                     <Label htmlFor="speech-duration">Duration (optional)</Label>
@@ -248,33 +298,11 @@ export default function EventTracker({ committeeId, portfolios }: EventTrackerPr
                 <form onSubmit={handlePOISubmit} className="space-y-4">
                   <div>
                     <Label>Raised by</Label>
-                    <Select value={poiForm.raiser} onValueChange={(value) => setPoiForm({ ...poiForm, raiser: value })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select portfolio" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {portfolios.map((portfolio) => (
-                          <SelectItem key={portfolio} value={portfolio}>
-                            {portfolio}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SearchablePortfolioDropdown value={poiForm.raiser} onChange={v => setPoiForm({ ...poiForm, raiser: v })} portfolios={portfolios} />
                   </div>
                   <div>
                     <Label>Target speaker</Label>
-                    <Select value={poiForm.target} onValueChange={(value) => setPoiForm({ ...poiForm, target: value })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select portfolio" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {portfolios.map((portfolio) => (
-                          <SelectItem key={portfolio} value={portfolio}>
-                            {portfolio}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SearchablePortfolioDropdown value={poiForm.target} onChange={v => setPoiForm({ ...poiForm, target: v })} portfolios={portfolios} />
                   </div>
                   <div>
                     <Label>Description (optional)</Label>
@@ -303,33 +331,11 @@ export default function EventTracker({ committeeId, portfolios }: EventTrackerPr
                 <form onSubmit={handlePOOSubmit} className="space-y-4">
                   <div>
                     <Label>Raised by</Label>
-                    <Select value={pooForm.raiser} onValueChange={(value) => setPooForm({ ...pooForm, raiser: value })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select portfolio" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {portfolios.map((portfolio) => (
-                          <SelectItem key={portfolio} value={portfolio}>
-                            {portfolio}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SearchablePortfolioDropdown value={pooForm.raiser} onChange={v => setPooForm({ ...pooForm, raiser: v })} portfolios={portfolios} />
                   </div>
                   <div>
                     <Label>Target speaker</Label>
-                    <Select value={pooForm.target} onValueChange={(value) => setPooForm({ ...pooForm, target: value })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select portfolio" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {portfolios.map((portfolio) => (
-                          <SelectItem key={portfolio} value={portfolio}>
-                            {portfolio}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SearchablePortfolioDropdown value={pooForm.target} onChange={v => setPooForm({ ...pooForm, target: v })} portfolios={portfolios} />
                   </div>
                   <div>
                     <Label>Description (optional)</Label>
@@ -358,21 +364,7 @@ export default function EventTracker({ committeeId, portfolios }: EventTrackerPr
                 <form onSubmit={handleMotionSubmit} className="space-y-4">
                   <div>
                     <Label>Raised by</Label>
-                    <Select
-                      value={motionForm.raiser}
-                      onValueChange={(value) => setMotionForm({ ...motionForm, raiser: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select portfolio" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {portfolios.map((portfolio) => (
-                          <SelectItem key={portfolio} value={portfolio}>
-                            {portfolio}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SearchablePortfolioDropdown value={motionForm.raiser} onChange={v => setMotionForm({ ...motionForm, raiser: v })} portfolios={portfolios} />
                   </div>
                   <div>
                     <Label>Motion Type</Label>

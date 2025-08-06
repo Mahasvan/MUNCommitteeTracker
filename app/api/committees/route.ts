@@ -1,9 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { initDatabase, getCommittees, createCommittee } from "@/lib/database"
+import { getCommittees, createCommittee } from "@/lib/database"
 
 export async function GET() {
   try {
-    await initDatabase()
     const committees = await getCommittees()
     return NextResponse.json(committees)
   } catch (error) {
@@ -14,7 +13,6 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    await initDatabase()
     const { name, password } = await request.json()
 
     if (!name || typeof name !== "string" || !name.trim()) {

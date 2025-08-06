@@ -1,9 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { initDatabase, getCommitteeById } from "@/lib/database"
+import { getCommitteeById } from "@/lib/database"
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    await initDatabase()
     const committee = await getCommitteeById(params.id)
 
     if (!committee) {

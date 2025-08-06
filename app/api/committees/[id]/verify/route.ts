@@ -1,9 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { initDatabase, verifyCommitteeAccess } from "@/lib/database"
+import { verifyCommitteeAccess } from "@/lib/database"
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    await initDatabase()
     const { password } = await request.json()
 
     if (!password || typeof password !== "string") {

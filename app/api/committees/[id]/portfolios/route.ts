@@ -1,9 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { initDatabase, updateCommitteePortfolios } from "@/lib/database"
+import { updateCommitteePortfolios } from "@/lib/database"
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    await initDatabase()
     const { portfolios } = await request.json()
 
     if (!Array.isArray(portfolios) || portfolios.length === 0) {

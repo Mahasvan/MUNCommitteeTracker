@@ -2,21 +2,21 @@ FROM node:18-alpine
 
 WORKDIR /app
 
+# Install pnpm
+RUN npm install -g pnpm
+
 # Install dependencies
-COPY package*.json ./
-RUN npm ci --only=production
+COPY package*.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY . .
 
 # Build the application
-RUN npm run build
-
-# Create data directory for SQLite database
-RUN mkdir -p /app/data
+RUN pnpm run build
 
 # Expose port
 EXPOSE 3000
 
 # Start the application
-CMD ["npm", "start"]
+CMD ["pnpm", "start"]

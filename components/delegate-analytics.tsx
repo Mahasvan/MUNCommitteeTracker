@@ -2,15 +2,16 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { BarChart3, MessageSquare, AlertTriangle, HelpCircle, Users, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
+import { ArrowUpDown, ArrowUp, ArrowDown, BarChart3, MessageSquare, AlertTriangle, HelpCircle, Users } from "lucide-react"
 
 interface Event {
   id: string
   type: "speech" | "point_of_order" | "point_of_information" | "motion"
   portfolio: string
+  targetPortfolio?: string
   timestamp: string
   details: any
 }
@@ -20,10 +21,11 @@ interface DelegateStats {
   speeches: number
   pointsOfOrder: number
   pointsOfInformation: number
+  motions: number
   totalParticipation: number
 }
 
-type SortField = "portfolio" | "speeches" | "pointsOfOrder" | "pointsOfInformation" | "totalParticipation"
+type SortField = "portfolio" | "speeches" | "pointsOfOrder" | "pointsOfInformation" | "motions" | "totalParticipation"
 type SortDirection = "asc" | "desc"
 
 interface DelegateAnalyticsProps {
@@ -67,6 +69,7 @@ export default function DelegateAnalytics({ committeeId, portfolios }: DelegateA
         speeches: 0,
         pointsOfOrder: 0,
         pointsOfInformation: 0,
+        motions: 0,
         totalParticipation: 0
       })
     })
@@ -100,6 +103,15 @@ export default function DelegateAnalytics({ committeeId, portfolios }: DelegateA
             stats.totalParticipation++
           }
           break
+
+        case "motion":
+          const motionRaiser = event.portfolio
+          if (statsMap.has(motionRaiser)) {
+            const stats = statsMap.get(motionRaiser)!
+            stats.motions++
+            stats.totalParticipation++
+          }
+          break
       }
     })
 
@@ -124,6 +136,10 @@ export default function DelegateAnalytics({ committeeId, portfolios }: DelegateA
         case "pointsOfInformation":
           aValue = a.pointsOfInformation
           bValue = b.pointsOfInformation
+          break
+        case "motions":
+          aValue = a.motions
+          bValue = b.motions
           break
         case "totalParticipation":
         default:
@@ -166,9 +182,10 @@ export default function DelegateAnalytics({ committeeId, portfolios }: DelegateA
         speeches: totals.speeches + delegate.speeches,
         pointsOfOrder: totals.pointsOfOrder + delegate.pointsOfOrder,
         pointsOfInformation: totals.pointsOfInformation + delegate.pointsOfInformation,
+        motions: totals.motions + delegate.motions,
         totalParticipation: totals.totalParticipation + delegate.totalParticipation
       }),
-      { speeches: 0, pointsOfOrder: 0, pointsOfInformation: 0, totalParticipation: 0 }
+      { speeches: 0, pointsOfOrder: 0, pointsOfInformation: 0, motions: 0, totalParticipation: 0 }
     )
   }
 
@@ -186,7 +203,7 @@ export default function DelegateAnalytics({ committeeId, portfolios }: DelegateA
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Speeches</CardTitle>
@@ -212,6 +229,15 @@ export default function DelegateAnalytics({ committeeId, portfolios }: DelegateA
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalStats.pointsOfInformation}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Motions</CardTitle>
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalStats.motions}</div>
           </CardContent>
         </Card>
         <Card>
@@ -287,6 +313,16 @@ export default function DelegateAnalytics({ committeeId, portfolios }: DelegateA
                   <TableHead className="text-center">
                     <Button
                       variant="ghost"
+                      onClick={() => handleSort("motions")}
+                      className="h-auto p-0 font-medium"
+                    >
+                      Motions
+                      {getSortIcon("motions")}
+                    </Button>
+                  </TableHead>
+                  <TableHead className="text-center">
+                    <Button
+                      variant="ghost"
                       onClick={() => handleSort("totalParticipation")}
                       className="h-auto p-0 font-medium"
                     >
@@ -319,13 +355,19 @@ export default function DelegateAnalytics({ committeeId, portfolios }: DelegateA
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
+                      <div className="flex items-center justify-center">
+                        <BarChart3 className="w-4 h-4 mr-1 text-green-600" />
+                        {delegate.motions}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
                       <span className="font-semibold text-lg">{delegate.totalParticipation}</span>
                     </TableCell>
                   </TableRow>
                 ))}
                 {stats.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                    <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                       No delegate data available
                     </TableCell>
                   </TableRow>
@@ -338,7 +380,7 @@ export default function DelegateAnalytics({ committeeId, portfolios }: DelegateA
             <div className="mt-4 text-sm text-gray-600">
               <p>
                 <strong>Note:</strong> Delegates are sorted by total participation. 
-                Motions are not included in individual delegate statistics as they represent procedural actions.
+                All event types including motions are included in individual delegate statistics.
               </p>
             </div>
           )}
