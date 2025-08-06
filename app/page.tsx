@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Users, Calendar } from "lucide-react"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 interface Committee {
   id: string
@@ -109,11 +110,16 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4">
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Committee Tracker - SSN-SNUC MUN 2025</h1>
-          <p className="text-gray-600">Brought to you by the Tech Team. Hopefully it helps you manage your committee better!</p>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Committee Tracker - SSN-SNUC MUN 2025</h1>
+              <p className="text-gray-600 dark:text-gray-400">Brought to you by the Tech Team. Hopefully it helps you manage your committee better!</p>
+            </div>
+            <ThemeToggle />
+          </div>
         </div>
 
         {/* Create New Committee */}
@@ -164,13 +170,13 @@ export default function HomePage() {
 
         {/* Existing Committees */}
         <div>
-          <h2 className="text-xl font-semibold mb-4">Existing Committees</h2>
+          <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Existing Committees</h2>
           {committees.length === 0 ? (
             <Card>
               <CardContent className="text-center py-8">
                 <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">No committees created yet</p>
-                <p className="text-sm text-gray-400">Create your first committee to get started</p>
+                <p className="text-gray-500 dark:text-gray-400">No committees created yet</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500">Create your first committee to get started</p>
               </CardContent>
             </Card>
           ) : (

@@ -13,6 +13,7 @@ import { toast } from "sonner"
 import PortfolioUpload from "@/components/portfolio-upload"
 import EventTracker from "@/components/event-tracker"
 import DelegateAnalytics from "@/components/delegate-analytics"
+import { ThemeToggle } from "@/components/theme-toggle"
 import Head from "next/head"
 
 interface Committee {
@@ -96,10 +97,10 @@ export default function CommitteePage({ params }: CommitteePageProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p>Loading committee...</p>
+          <p className="text-gray-900 dark:text-white">Loading committee...</p>
         </div>
       </div>
     )
@@ -107,9 +108,9 @@ export default function CommitteePage({ params }: CommitteePageProps) {
 
   if (!committee) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-600 mb-4">Committee not found</p>
+          <p className="text-red-600 dark:text-red-400 mb-4">Committee not found</p>
           <Button onClick={() => router.push("/")}>Go Back</Button>
         </div>
       </div>
@@ -121,21 +122,24 @@ export default function CommitteePage({ params }: CommitteePageProps) {
       <Head>
         <title>{committee.name} - SSN-SNUC MUN 2025</title>
       </Head>
-      <div className="min-h-screen bg-gray-50 p-4">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <Button variant="ghost" onClick={() => router.push("/")} className="mb-4">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Committees
-            </Button>
+            <div className="flex items-center justify-between mb-4">
+              <Button variant="ghost" onClick={() => router.push("/")}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Committees
+              </Button>
+              <ThemeToggle />
+            </div>
             <div className="flex items-center justify-between mb-2">
-              <h1 className="text-3xl font-bold text-gray-900">{committee.name}</h1>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{committee.name}</h1>
               <Button variant="destructive" onClick={() => setShowDeleteDialog(true)} disabled={deleteLoading}>
                 {deleteLoading ? "Deleting..." : "Delete"}
               </Button>
             </div>
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-400">
               {committee.portfolios.length > 0
                 ? `Tracking ${committee.portfolios.length} portfolios`
                 : "Upload portfolios to begin tracking"}
@@ -195,7 +199,7 @@ export default function CommitteePage({ params }: CommitteePageProps) {
                     <CollapsibleContent className="mt-4">
                       <div className="grid gap-2 md:grid-cols-3 lg:grid-cols-4">
                         {committee.portfolios.map((portfolio, index) => (
-                          <div key={index} className="bg-blue-50 text-blue-800 px-3 py-2 rounded-md text-sm font-medium">
+                          <div key={index} className="bg-blue-50 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-2 rounded-md text-sm font-medium">
                             {portfolio}
                           </div>
                         ))}
