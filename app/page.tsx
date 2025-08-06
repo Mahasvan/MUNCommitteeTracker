@@ -21,6 +21,7 @@ interface Committee {
 export default function HomePage() {
   const router = useRouter()
   const [committees, setCommittees] = useState<Committee[]>([])
+  const [loading, setLoading] = useState(true)
   const [newCommitteeName, setNewCommitteeName] = useState("")
   const [newCommitteePassword, setNewCommitteePassword] = useState("")
   const [isCreating, setIsCreating] = useState(false)
@@ -33,6 +34,7 @@ export default function HomePage() {
   }, [])
 
   const loadCommittees = async () => {
+    setLoading(true)
     try {
       const response = await fetch("/api/committees")
       if (response.ok) {
@@ -41,6 +43,8 @@ export default function HomePage() {
       }
     } catch (error) {
       console.error("Failed to load committees:", error)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -171,7 +175,14 @@ export default function HomePage() {
         {/* Existing Committees */}
         <div>
           <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Existing Committees</h2>
-          {committees.length === 0 ? (
+          {loading ? (
+            <Card>
+              <CardContent className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-500 dark:text-gray-400">Loading committees...</p>
+              </CardContent>
+            </Card>
+          ) : committees.length === 0 ? (
             <Card>
               <CardContent className="text-center py-8">
                 <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
