@@ -252,3 +252,17 @@ export async function addCommitteeEvent(committeeId: string, type: string, detai
     timestamp: data.timestamp,
   }
 }
+
+export async function deleteCommittee(id: string, password: string): Promise<boolean> {
+  const isValid = await verifyCommitteeAccess(id, password)
+  if (!isValid) return false
+  const { error } = await supabase
+    .from('committees')
+    .delete()
+    .eq('id', id)
+  if (error) {
+    console.error('Error deleting committee:', error)
+    return false
+  }
+  return true
+}

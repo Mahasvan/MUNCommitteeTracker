@@ -49,6 +49,9 @@ CREATE POLICY "Allow public read access to committees" ON committees
 CREATE POLICY "Allow public insert access to committees" ON committees
   FOR INSERT WITH CHECK (true);
 
+CREATE POLICY "Allow public delete access to committees" ON committees
+  FOR DELETE USING (true);
+
 CREATE POLICY "Allow public read access to portfolios" ON portfolios
   FOR SELECT USING (true);
 

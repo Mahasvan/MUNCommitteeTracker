@@ -1,13 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Users, Calendar } from "lucide-react"
-import CommitteeDashboard from "@/components/committee-dashboard"
 
 interface Committee {
   id: string
@@ -18,8 +18,8 @@ interface Committee {
 }
 
 export default function HomePage() {
+  const router = useRouter()
   const [committees, setCommittees] = useState<Committee[]>([])
-  const [selectedCommittee, setSelectedCommittee] = useState<string | null>(null)
   const [newCommitteeName, setNewCommitteeName] = useState("")
   const [newCommitteePassword, setNewCommitteePassword] = useState("")
   const [isCreating, setIsCreating] = useState(false)
@@ -62,7 +62,7 @@ export default function HomePage() {
         setCommittees([...committees, newCommittee])
         setNewCommitteeName("")
         setNewCommitteePassword("")
-        setSelectedCommittee(newCommittee.id)
+        router.push(`/committees/${newCommittee.id}`)
       }
     } catch (error) {
       console.error("Failed to create committee:", error)
@@ -77,7 +77,7 @@ export default function HomePage() {
       setPasswordPrompt(committeeId)
       setAccessPassword("")
     } else {
-      setSelectedCommittee(committeeId)
+      router.push(`/committees/${committeeId}`)
     }
   }
 
@@ -93,7 +93,7 @@ export default function HomePage() {
       })
 
       if (response.ok) {
-        setSelectedCommittee(passwordPrompt)
+        router.push(`/committees/${passwordPrompt}`)
         setPasswordPrompt(null)
         setAccessPassword("")
       } else {
@@ -106,10 +106,6 @@ export default function HomePage() {
     } finally {
       setIsVerifying(false)
     }
-  }
-
-  if (selectedCommittee) {
-    return <CommitteeDashboard committeeId={selectedCommittee} onBack={() => setSelectedCommittee(null)} />
   }
 
   return (
