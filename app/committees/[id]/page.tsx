@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Users, ChevronDown, ChevronRight } from "lucide-react"
+import { ArrowLeft, Users, ChevronDown, ChevronRight, Github } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
@@ -131,7 +131,18 @@ export default function CommitteePage({ params }: CommitteePageProps) {
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Committees
               </Button>
-              <ThemeToggle />
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => window.open('https://github.com/Mahasvan/MUNCommitteeTracker', '_blank')}
+                  className="hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  <Github className="h-4 w-4" />
+                  <span className="sr-only">GitHub Repository</span>
+                </Button>
+                <ThemeToggle />
+              </div>
             </div>
             <div className="flex items-center justify-between mb-2">
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{committee.name}</h1>

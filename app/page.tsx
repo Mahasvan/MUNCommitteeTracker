@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Users, Calendar } from "lucide-react"
+import { Plus, Users, Calendar, Github } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 
 interface Committee {
@@ -122,7 +122,18 @@ export default function HomePage() {
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Committee Tracker - SSN-SNUC MUN 2025</h1>
               <p className="text-gray-600 dark:text-gray-400">Brought to you by the Tech Team. Hopefully it helps you manage your committee better!</p>
             </div>
-            <ThemeToggle />
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => window.open('https://github.com/Mahasvan/MUNCommitteeTracker', '_blank')}
+                className="hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                <Github className="h-4 w-4" />
+                <span className="sr-only">GitHub Repository</span>
+              </Button>
+              <ThemeToggle />
+            </div>
           </div>
         </div>
 
